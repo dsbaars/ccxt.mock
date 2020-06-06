@@ -151,7 +151,7 @@ export class mock extends Exchange {
         })
     }
 
-    private reserveBalanceForOrder(o: Order) {
+    protected reserveBalanceForOrder(o: Order) {
         let market = this.markets[o.symbol];
 
         if (o.side == 'buy') {
@@ -163,7 +163,7 @@ export class mock extends Exchange {
         }
     }
 
-    private processBalanceForOrder(o: Order) {
+    protected processBalanceForOrder(o: Order) {
         let market = this.markets[o.symbol];
 
         if (o.side == 'buy') {
@@ -191,7 +191,7 @@ export class mock extends Exchange {
 
     /* Helper functions */
 
-    private startRollercoaster() {
+    protected startRollercoaster() {
         // make the price go up and down
         setInterval(() => {
             if (this.rccPrice >= 0.0003) this.rccPriceDirection = 'down';
@@ -205,7 +205,7 @@ export class mock extends Exchange {
 
     }
 
-    private createMatchingTradeForOrder(o: Order) {
+    protected createMatchingTradeForOrder(o: Order) {
         let date = new Date();
 
         let t: Trade = {
@@ -228,7 +228,7 @@ export class mock extends Exchange {
         return t;
     }
 
-    private triggerRccOrders(rccPrice) {
+    protected triggerRccOrders(rccPrice) {
         let matchingOrders = this.orders.filter((o) => o.price == rccPrice && o.status == 'open' && o.type == 'limit');
 
         for (let o of matchingOrders) {
@@ -250,7 +250,7 @@ export class mock extends Exchange {
         }
     }
 
-    private processMatchingOrder(o: Order) {
+    protected processMatchingOrder(o: Order) {
         let date = new Date();
         let trade = this.createMatchingTradeForOrder(o);
 
@@ -264,7 +264,7 @@ export class mock extends Exchange {
         o.status = 'closed';
     }
 
-    private createMockMarkets() {
+    protected createMockMarkets() {
         let markets = [];
         for (let m in this.mockMarkets) {
             let market = {
@@ -284,7 +284,7 @@ export class mock extends Exchange {
         return markets;
     }
 
-    private createOrderId() {
+    protected createOrderId() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
