@@ -1,0 +1,13 @@
+{
+  "name": "ccxt.mock",
+  "version": "1.0.0",
+  "description": "Mock Exchange for ccxt",
+  "main": "index.js",
+  "repository": "https://github.com/dsbaars/ccxt.mock",
+  "author": "Djuri Baars <dsbaars@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "ccxt": "^1.29.36",
+    "typescript": "^3.9.5"
+  }
+}
