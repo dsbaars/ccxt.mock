@@ -49,7 +49,7 @@ class mock extends ccxt_1.Exchange {
     }
     async fetchMarkets(params = {}) {
         return new Promise((resolve, reject) => {
-            let markets = this.createMockMarkets();
+            const markets = this.createMockMarkets();
             resolve(markets);
         });
     }
@@ -60,11 +60,11 @@ class mock extends ccxt_1.Exchange {
     }
     async fetchTicker(symbol, params = {}) {
         return new Promise((resolve, reject) => {
-            let date = new Date();
-            let tick = {
+            const currentDate = new Date();
+            const tick = {
                 symbol: 'RCC/BTC',
-                timestamp: date.getTime() / 1000,
-                datetime: date.toISOString(),
+                timestamp: currentDate.getTime() / 1000,
+                datetime: currentDate.toISOString(),
                 high: 0.05,
                 low: 0.01,
                 bid: this.rccPrice,
@@ -81,7 +81,7 @@ class mock extends ccxt_1.Exchange {
     }
     async fetchOrder(id, symbol = undefined, params = {}) {
         return new Promise((resolve, reject) => {
-            resolve(this.orders.find((o) => o.id == id));
+            resolve(this.orders.find((o) => o.id === id));
         });
     }
     async fetchOrders(symbol = undefined, since = undefined, limit = undefined, params = {}) {
@@ -91,21 +91,27 @@ class mock extends ccxt_1.Exchange {
     }
     async fetchOpenOrders(symbol = undefined, since = undefined, limit = undefined, params = {}) {
         return new Promise((resolve, reject) => {
-            resolve(this.orders.filter((o) => o.status == 'open'));
+            resolve(this.orders.filter((o) => o.status === 'open'));
         });
     }
     async createOrder(symbol, type, side, amount, price = undefined, params = {}) {
         return new Promise((resolve, reject) => {
-            let date = new Date();
-            let o = {
+            try {
+                this.market(symbol);
+            }
+            catch (e) {
+                reject(e);
+            }
+            const currentDate = new Date();
+            const o = {
                 id: this.createOrderId(),
                 symbol: symbol,
                 type: type,
                 side: side,
                 amount: amount,
                 price: price,
-                timestamp: date.getTime() / 1000,
-                datetime: date.toISOString(),
+                timestamp: currentDate.getTime() / 1000,
+                datetime: currentDate.toISOString(),
                 info: {},
                 status: 'open',
                 remaining: amount,
@@ -121,7 +127,7 @@ class mock extends ccxt_1.Exchange {
                 o.info['type'] = params['type'];
                 o.info['stopPrice'] = params['stopPrice'];
             }
-            else if (type == 'market') {
+            else if (type === 'market') {
                 // direct process market orders
                 this.processMatchingOrder(o);
             }
@@ -130,8 +136,8 @@ class mock extends ccxt_1.Exchange {
         });
     }
     reserveBalanceForOrder(o) {
-        let market = this.markets[o.symbol];
-        if (o.side == 'buy') {
+        const market = this.markets[o.symbol];
+        if (o.side === 'buy') {
             this.balances[market.quote]['free'] -= o.amount * o.price;
             this.balances[market.quote]['used'] += o.amount * o.price;
         }
@@ -141,8 +147,8 @@ class mock extends ccxt_1.Exchange {
         }
     }
     processBalanceForOrder(o) {
-        let market = this.markets[o.symbol];
-        if (o.side == 'buy') {
+        const market = this.markets[o.symbol];
+        if (o.side === 'buy') {
             this.balances[market.quote]['used'] -= o.amount * o.price;
             this.balances[market.quote]['total'] -= o.amount * o.price;
             this.balances[market.base]['free'] += o.amount;
@@ -157,7 +163,7 @@ class mock extends ccxt_1.Exchange {
     }
     async cancelOrder(id, symbol = undefined, params = {}) {
         return new Promise((resolve, reject) => {
-            let o = this.orders.find((o) => o.id == id);
+            const o = this.orders.find((order) => order.id === id);
             o.status = 'canceled';
             resolve(o);
         });
@@ -166,21 +172,24 @@ class mock extends ccxt_1.Exchange {
     startRollercoaster() {
         // make the price go up and down
         setInterval(() => {
-            if (this.rccPrice >= 0.0003)
-                this.rccPriceDirection = 'down';
-            if (this.rccPrice <= 0.0001)
-                this.rccPriceDirection = 'up';
-            this.rccPrice = Number((this.rccPriceDirection == 'up' ? this.rccPrice + 0.00001 : this.rccPrice - 0.00001).toFixed(5));
-            // trigger orders
-            this.triggerRccOrders(this.rccPrice);
+            this.updateRollerCoasterPrice();
         }, 100);
     }
+    updateRollerCoasterPrice() {
+        if (this.rccPrice >= 0.0003)
+            this.rccPriceDirection = 'down';
+        if (this.rccPrice <= 0.0001)
+            this.rccPriceDirection = 'up';
+        this.rccPrice = Number((this.rccPriceDirection === 'up' ? this.rccPrice + 0.00001 : this.rccPrice - 0.00001).toFixed(5));
+        // trigger orders
+        this.triggerRccOrders(this.rccPrice);
+    }
     createMatchingTradeForOrder(o) {
-        let date = new Date();
-        let t = {
+        const currentDate = new Date();
+        const t = {
             amount: o.amount,
-            timestamp: date.getTime() / 1000,
-            datetime: date.toISOString(),
+            timestamp: currentDate.getTime() / 1000,
+            datetime: currentDate.toISOString(),
             id: this.createOrderId(),
             price: o.price,
             type: o.type,
@@ -195,25 +204,26 @@ class mock extends ccxt_1.Exchange {
         return t;
     }
     triggerRccOrders(rccPrice) {
-        let matchingOrders = this.orders.filter((o) => o.price == rccPrice && o.status == 'open' && o.type == 'limit');
-        for (let o of matchingOrders) {
+        const matchingOrders = this.orders.filter((o) => (o.side === 'sell' ? rccPrice >= Number(o.price) : rccPrice <= Number(o.price))
+            && o.status === 'open'
+            && o.type === 'limit');
+        for (const o of matchingOrders) {
             this.processMatchingOrder(o);
         }
-        let stopOrders = this.orders.filter((o) => {
-            if (o.status == 'open' && o['info'] && o.info['type'] === 'stopMarket') {
-                if ((o.side == 'sell' ? rccPrice > Number(o.info['stopPrice']) : rccPrice < Number(o.info['stopPrice']))) {
+        const stopOrders = this.orders.filter((o) => {
+            if (o.status === 'open' && o['info'] && o.info['type'] === 'stopMarket') {
+                if ((o.side === 'sell' ? rccPrice > Number(o.info['stopPrice']) : rccPrice < Number(o.info['stopPrice']))) {
                     return true;
                 }
             }
             return false;
         });
-        for (let o of stopOrders) {
+        for (const o of stopOrders) {
             this.processMatchingOrder(o);
         }
     }
     processMatchingOrder(o) {
-        let date = new Date();
-        let trade = this.createMatchingTradeForOrder(o);
+        const trade = this.createMatchingTradeForOrder(o);
         o.trades.push(trade);
         o.remaining = 0;
         o.filled = o.amount;
@@ -222,14 +232,14 @@ class mock extends ccxt_1.Exchange {
         o.status = 'closed';
     }
     createMockMarkets() {
-        let markets = [];
-        for (let m in this.mockMarkets) {
-            let market = {
-                id: `${this.mockMarkets[m].base}${this.mockMarkets[m].quote}`,
-                symbol: `${this.mockMarkets[m].base}/${this.mockMarkets[m].quote}`,
+        const markets = [];
+        for (const m of this.mockMarkets) {
+            const market = {
+                id: `${m.base}${m.quote}`,
+                symbol: `${m.base}/${m.quote}`,
                 active: true,
-                base: this.mockMarkets[m].base,
-                quote: this.mockMarkets[m].quote,
+                base: m.base,
+                quote: m.quote,
                 precision: { "base": 8, "quote": 8, "amount": 3, "price": 6 },
                 limits: { "amount": { "min": 0.001, "max": 100000 }, "price": { "min": 0.000001, "max": 100000 }, "cost": { "min": 0.0001 }, "market": { "min": 0, "max": 10010.61492249 } }
             };
@@ -238,8 +248,8 @@ class mock extends ccxt_1.Exchange {
         return markets;
     }
     createOrderId() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     }
